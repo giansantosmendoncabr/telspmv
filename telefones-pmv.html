@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Ramais</title>
+  <!--
+    Esta página exibe uma lista de ramais municipais em uma tabela responsiva.
+    O cabeçalho permanece fixo no topo, contendo um campo de busca para filtrar
+    as linhas em tempo real. O layout utiliza apenas CSS inline para simplificar
+    a entrega e garantir compatibilidade ampla. Desenvolvido em JavaScript
+    vanilla por um desenvolvedor sênior para máxima performance.
+  -->
+</head>
+<body style="margin:0;font-family:Arial,Helvetica,sans-serif;background:#f7f7f7;color:#333;">
+  <!-- Cabeçalho fixo com campo de busca -->
+  <header style="position:sticky;top:0;left:0;width:100%;background:#ab3437;color:#fff;padding:16px 0;z-index:100;box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+    <div style="width:50%;margin:0 auto;display:flex;flex-direction:column;align-items:center;">
+      <h1 style="margin:0 0 8px;font-size:24px;">Telefones PMV - Administração 2025</h1>
+      <input type="text" id="filterInput" placeholder="Filtrar por local ou ramal…" 
+             style="width:100%;max-width:500px;padding:8px 12px;border:1px solid #ccc;border-radius:4px;font-size:16px;"
+             oninput="filtrar(this.value)" />
+    </div>
+  </header>
+
+  <!-- Contêiner principal -->
+  <main style="width:100%;display:flex;justify-content:center;padding:24px 0 60px;">
+    <div style="width:50%;overflow-x:auto;">
+      <!-- Tabela gerada dinamicamente -->
+      <table id="ramalTable" style="width:100%;border-collapse:collapse;text-align:center;background:#fff;border:1px solid #ddd;display:none;">
+        <thead>
+          <tr style="background:#ccc;">
+            <th style="padding:12px;border-bottom:2px solid #bbb;font-size:18px;">Local</th>
+            <th style="padding:12px;border-bottom:2px solid #bbb;font-size:18px;">Ramal</th>
+          </tr>
+        </thead>
+        <tbody id="ramalBody"><!-- Linhas serão inseridas via script --></tbody>
+      </table>
+      <!-- Novo contêiner para departamentos -->
+      <div id="departamentosContainer" style="width:100%;"></div>
+    </div>
+  </main>
+
+  <!-- Rodapé com texto centralizado -->
+  <footer style="position:fixed;bottom:0;left:0;width:100%;background:#ab3437;color:#fff;text-align:center;padding:12px 0;font-size:14px;z-index:100;">
+    Desenvolvido pela DTI - Setembro 2025
+  </footer>
+
+  <script>
+    // Dados fornecidos em formato JSON. Mantidos como constante para permitir
+    // rápida leitura e filtragem. Para facilitar a manutenção, cada objeto
+    // possui propriedades padronizadas: local e ramal.
+    const dadosRamal = [
+      {"local":"Administração e Controle","ramal":"2104"},
+      {"local":"Aeroporto","ramal":"1809"},
+      {"local":"AEV Educacao","ramal":"2106"},
+      {"local":"AEV Recepcao","ramal":"2105"},
+      {"local":"Almoxarifado Central","ramal":"1302"},
+      {"local":"Almoxarifado Saúde","ramal":"1303"},
+      {"local":"Alta Complexidade","ramal":"1508"},
+      {"local":"Apoio aos Conselhos","ramal":"1008"},
+      {"local":"Assessoria Gabinete Gabinete","ramal":"2102"},
+      {"local":"Atendimento Tributario","ramal":"2004"},
+      {"local":"Beneficios e Programas Sociais","ramal":"1501"},
+      {"local":"Benefícios Eventuais","ramal":"1507"},
+      {"local":"Bombeiros Administracao","ramal":"1314"},
+      {"local":"Bombeiros Sala de Comando","ramal":"1315"},
+      {"local":"Cad Unico","ramal":"1503"},
+      {"local":"Cadastro Fiscal","ramal":"2005"},
+      {"local":"CAPS AD Centro de Atencao Psicossocial","ramal":"2324"},
+      {"local":"CAPS Infantil Centro de Atencao Psicossocial","ramal":"2325"},
+      {"local":"CAPS Saude Mental Centro de Atencao Psicossocial","ramal":"2326"},
+      {"local":"Casa de Passagem","ramal":"1509"},
+      {"local":"Centro de especialidades Odontologicas CEO","ramal":"2327"},
+      {"local":"Centro estadual Atencao especializada CEAE 1","ramal":"2329"},
+      {"local":"Centro estadual Atencao especializada CEAE 2","ramal":"2330"},
+      {"local":"Centro estadual Atencao especializada CEAE Recepcao","ramal":"2328"},
+      {"local":"Chefia Vigilancia em Saude","ramal":"2300"},
+      {"local":"CMEI Conego Antonio Mendes","ramal":"2141"},
+      {"local":"CMEI Dr Celito Francisco Sari","ramal":"2143"},
+      {"local":"CMEI Leda Bittencourt Bandeira","ramal":"2145"},
+      {"local":"CMEI Maria Jose Santana","ramal":"2139"},
+      {"local":"CMEI Presidente Getulio Dornelles Varga","ramal":"2137"},
+      {"local":"CMEI Therezinha Mucci Xavier","ramal":"2147"},
+      {"local":"Conselho Municipal de Saude","ramal":"2331"},
+      {"local":"Conselho Tutelar Goncalves","ramal":"1517"},
+      {"local":"Conselho Tutelar Milena","ramal":"1518"},
+      {"local":"Conselho Tutelar Pauliene","ramal":"1516"},
+      {"local":"Conselho Tutelar Recepção","ramal":"1515"},
+      {"local":"Consorcio Intermunicipal de Saude CISMIV1","ramal":"2333"},
+      {"local":"Consorcio Intermunicipal de Saude CISMIV2","ramal":"2334"},
+      {"local":"Contabilidade","ramal":"2002"},
+      {"local":"Convênios Gabinete","ramal":"1007"},
+      {"local":"Coworking Desenvolvimento","ramal":"1716"},
+      {"local":"CRAS Itinerante","ramal":"1513"},
+      {"local":"CRAS Norte","ramal":"1511"},
+      {"local":"CRAS Sul","ramal":"1512"},
+      {"local":"CREAS Assistencia Social","ramal":"1514"},
+      {"local":"Defesa Civil","ramal":"2208"},
+      {"local":"Departamento Administrativo Financeiro da Saude","ramal":"2301"},
+      {"local":"Departamento Apoio Nutricional","ramal":"2302"},
+      {"local":"Departamento Atencao Primaria de Imunizacao","ramal":"2303"},
+      {"local":"Departamento Contabilidade SEMSA","ramal":"2304"},
+      {"local":"Departamento de Agricultura Familiar e Produção e Produção","ramal":"1402"},
+      {"local":"Departamento de Cultura","ramal":"1904"},
+      {"local":"Departamento de Eventos","ramal":"1907"},
+      {"local":"Departamento Faturamento SEMSA","ramal":"2305"},
+      {"local":"Departamento Marcacao de exames","ramal":"2306"},
+      {"local":"Departamento Marcacao e Regulacao 1","ramal":"2307"},
+      {"local":"Departamento Recrutamento de Pessoal e Saude dos Servidores","ramal":"2308"},
+      {"local":"Departamento Servico Social","ramal":"2311"},
+      {"local":"Departamento Servico Social SEMSA","ramal":"2309"},
+      {"local":"Departamento Tratamento Fora de Domicilio","ramal":"2310"},
+      {"local":"Diretoria","ramal":"1401"},
+      {"local":"Diretoria Administrativa","ramal":"2103"},
+      {"local":"Diretoria Autorizador Regulador do Sistema Unico de Saude","ramal":"2312"},
+      {"local":"Diretoria Centro Educacional Dr Januario","ramal":"2109"},
+      {"local":"Diretoria de Comunicacao","ramal":"1006"},
+      {"local":"Diretoria de Financas","ramal":"2001"},
+      {"local":"Diretoria de Financas Recepcao","ramal":"2000"},
+      {"local":"Diretoria de Gestao Fundo Municipal de Saude","ramal":"2313"},
+      {"local":"Diretoria de Gestao Tributaria","ramal":"2003"},
+      {"local":"Diretoria DL","ramal":"1308"},
+      {"local":"Diretoria Pedagógica","ramal":"2101"},
+      {"local":"DIRETRAN 1","ramal":"1806"},
+      {"local":"Diretran 2","ramal":"1804"},
+      {"local":"DIRETRAN Recepcao","ramal":"1805"},
+      {"local":"DTI","ramal":"1310"},
+      {"local":"EM Almiro Paraiso","ramal":"2111"},
+      {"local":"EM Anita Chequer","ramal":"2113"},
+      {"local":"EM CASB","ramal":"2115"},
+      {"local":"EM Dr Arthur Bernardes","ramal":"2117"},
+      {"local":"EM Edmundo Lins","ramal":"2127"},
+      {"local":"EM JK","ramal":"2121"},
+      {"local":"EM Joao Francisco da Silva","ramal":"2123"},
+      {"local":"EM Jose Teotonio Pacheco","ramal":"2119"},
+      {"local":"EM Mario Del Giudice","ramal":"2135"},
+      {"local":"EM Nossa Senhora de Fatima","ramal":"2129"},
+      {"local":"EM Padre Francisco Jose da Silva","ramal":"2131"},
+      {"local":"EM Pedro Gomide Filho","ramal":"2133"},
+      {"local":"EM Tico Tico","ramal":"2125"},
+      {"local":"EMAD Saude","ramal":"2335"},
+      {"local":"Familia Acolhedora","ramal":"1519"},
+      {"local":"Farmacia Central 2","ramal":"2387"},
+      {"local":"Farmacia Central 3","ramal":"2388"},
+      {"local":"Farmacia de Todos Central","ramal":"2336"},
+      {"local":"Farmacia de Todos Liberdade","ramal":"2337"},
+      {"local":"Farmacia de Todos Nova Vicosa","ramal":"2338"},
+      {"local":"Farmacia de Todos Sao Jose Do Triunfo","ramal":"2339"},
+      {"local":"Fiscalizacao Posturas","ramal":"1807"},
+      {"local":"Gabinete Desenvolvimento","ramal":"1700"},
+      {"local":"Gabinete do Prefeito","ramal":"1005"},
+      {"local":"Gabinete do Prefeito","ramal":"1011"},
+      {"local":"Gabinete Secretario","ramal":"2314"},
+      {"local":"Gerencia do Setor de Atencao Primaria a Saude e de Praticas","ramal":"2315"},
+      {"local":"Gestao Descentralizada","ramal":"1504"},
+      {"local":"Gestao Financeira","ramal":"1506"},
+      {"local":"Inclusao Social","ramal":"1502"},
+      {"local":"Inspeção Municipal","ramal":"1403"},
+      {"local":"Inspetoria Regional de Ensino","ramal":"2107"},
+      {"local":"Junta Militar","ramal":"1311"},
+      {"local":"Meio Ambiente Bem Estar Animal","ramal":"1601"},
+      {"local":"Meio Ambiente DLA","ramal":"1602"},
+      {"local":"Meio Ambiente Educação Ambiental","ramal":"1603"},
+      {"local":"Meio Ambiente Secretário Geral","ramal":"1604"},
+      {"local":"Merenda Escolar","ramal":"1304"},
+      {"local":"Ouvidoria Geral","ramal":"1202"},
+      {"local":"Ouvidoria SUS","ramal":"1203"},
+      {"local":"Passe Livre","ramal":"1505"},
+      {"local":"Pedagogico 1","ramal":"2149"},
+      {"local":"Pedagogico 2","ramal":"2150"},
+      {"local":"PMTI Terceira Idade","ramal":"1510"},
+      {"local":"Processamento de Dados DL","ramal":"1309"},
+      {"local":"Procon 2 Caique","ramal":"1702"},
+      {"local":"Procon 3 Amanda","ramal":"1703"},
+      {"local":"Procon 7","ramal":"1708"},
+      {"local":"Procon 8","ramal":"1709"},
+      {"local":"Procon 9","ramal":"1710"},
+      {"local":"Procon Atendimento 1","ramal":"1704"},
+      {"local":"Procon Atendimento 2","ramal":"1705"},
+      {"local":"Procon Atendimento 3","ramal":"1706"},
+      {"local":"Procon Celso","ramal":"1707"},
+      {"local":"Procon Recepcao Janaina","ramal":"1701"},
+      {"local":"Procuradoria Especializada em Saude","ramal":"2316"},
+      {"local":"Projetos Gabinete","ramal":"1010"},
+      {"local":"Protocolo Administracao","ramal":"1305"},
+      {"local":"Recepcao Agropecuaria","ramal":"1400"},
+      {"local":"Recepcao Centro Educacional Dr Januario","ramal":"2108"},
+      {"local":"Recepcao CMEI Conego Antonio Mendes","ramal":"2140"},
+      {"local":"Recepcao CMEI Dr Celito Francisco Sari","ramal":"2142"},
+      {"local":"Recepcao CMEI Leda Bittencourt Bandeira","ramal":"2144"},
+      {"local":"Recepcao CMEI Maria Jose Santana","ramal":"2138"},
+      {"local":"Recepcao CMEI Presidente Getulio Dornelles Varga","ramal":"2136"},
+      {"local":"Recepcao CMEI Therezinha Mucci Xavier","ramal":"2146"},
+      {"local":"Recepcao da Assistencia Social","ramal":"1500"},
+      {"local":"Recepcao Defesa Civil","ramal":"2207"},
+      {"local":"Recepcao Diretoria de Logística","ramal":"1307"},
+      {"local":"Recepcao EM Almiro Paraiso","ramal":"2110"},
+      {"local":"Recepcao EM Anita Chequer","ramal":"2112"},
+      {"local":"Recepcao EM CASB","ramal":"2114"},
+      {"local":"Recepcao EM Dr Arthur Bernardes","ramal":"2116"},
+      {"local":"Recepcao EM Edmundo Lins","ramal":"2126"},
+      {"local":"Recepcao EM JK","ramal":"2120"},
+      {"local":"Recepcao EM Joao Francisco da Silva","ramal":"2122"},
+      {"local":"Recepcao EM Jose Teotonio Pacheco","ramal":"2118"},
+      {"local":"Recepcao EM Mario Del Giudice","ramal":"2134"},
+      {"local":"Recepcao EM Nossa Senhora de Fatima","ramal":"2128"},
+      {"local":"Recepcao EM Padre Francisco Jose da Silva","ramal":"2130"},
+      {"local":"Recepcao EM Pedro Gomide Filho","ramal":"2132"},
+      {"local":"Recepcao EM Tico Tico","ramal":"2124"},
+      {"local":"Recepcao Gabinete","ramal":"1004"},
+      {"local":"Recepcao GERAL","ramal":"1001"},
+      {"local":"Recepcao Governo","ramal":"1009"},
+      {"local":"Recepcao Hemominas","ramal":"2332"},
+      {"local":"Recepcao Meio Ambiente","ramal":"1600"},
+      {"local":"Recepcao Procuradoria","ramal":"1100"},
+      {"local":"Recepcao Secretaria de Obras","ramal":"2200"},
+      {"local":"RH Geral","ramal":"1306"},
+      {"local":"Rodoviaria","ramal":"1808"},
+      {"local":"Sala Controladoria","ramal":"1200"},
+      {"local":"Sala da Enfermeira UBS Nova Era Inacio Martins","ramal":"2362"},
+      {"local":"Sala de Recurso","ramal":"2148"},
+      {"local":"Sala de Vacina UBS Nova Era Inacio Martins","ramal":"2363"},
+      {"local":"Sala do Lucas","ramal":"1101"},
+      {"local":"Sala dos Agentes UBS Nova Era Inacio Martins","ramal":"2361"},
+      {"local":"Sala Governo","ramal":"1002"},
+      {"local":"Sala Licitacões","ramal":"1301"},
+      {"local":"Sala Marcos","ramal":"1003"},
+      {"local":"Sala Mineira Desenvolvimento","ramal":"1714"},
+      {"local":"Sala Mineira Recepcao","ramal":"1713"},
+      {"local":"Sala Nana","ramal":"1201"},
+      {"local":"Secretaria Adjunto SEMSA","ramal":"2317"},
+      {"local":"Secretaria de Administração","ramal":"1300"},
+      {"local":"Secretaria de Cultura 1","ramal":"1901"},
+      {"local":"Secretaria de Cultura 2","ramal":"1902"},
+      {"local":"Secretaria de Cultura 3","ramal":"1903"},
+      {"local":"Secretaria de Cultura 5","ramal":"1905"},
+      {"local":"Secretaria de Cultura 6","ramal":"1906"},
+      {"local":"Secretaria de Cultura Recepcao","ramal":"1900"},
+      {"local":"Secretaria de Obras 1","ramal":"2201"},
+      {"local":"Secretaria de Obras 2","ramal":"2202"},
+      {"local":"Secretaria de Obras 3","ramal":"2203"},
+      {"local":"Secretaria de Obras 4","ramal":"2204"},
+      {"local":"Secretaria de Obras 5","ramal":"2205"},
+      {"local":"Secretaria de Obras 6","ramal":"2206"},
+      {"local":"Secretaria Educacao","ramal":"2100"},
+      {"local":"Secretaria Municipal Saude SEMSA 1","ramal":"2319"},
+      {"local":"Secretaria Municipal Saude SEMSA Recepcao","ramal":"2318"},
+      {"local":"Sede 1","ramal":"1801"},
+      {"local":"Sede 2","ramal":"1802"},
+      {"local":"Sede 3","ramal":"1803"},
+      {"local":"SEMPLAG Recepcao","ramal":"1800"},
+      {"local":"Setor de Coordenacao Atencao Primaria","ramal":"2320"},
+      {"local":"Setor Odontologia Aps","ramal":"2340"},
+      {"local":"SINE Desenvolvimento","ramal":"1712"},
+      {"local":"SINE Recepcao","ramal":"1711"},
+      {"local":"Suporte Mais Voice","ramal":"1000"},
+      {"local":"Tesouraria","ramal":"2006"},
+      {"local":"Tiro de Guerra 1","ramal":"1312"},
+      {"local":"Tiro de Guerra 2","ramal":"1313"},
+      {"local":"UAI Desenvolvimento","ramal":"1715"},
+      {"local":"UBS Amoras","ramal":"2342"},
+      {"local":"UBS Amoras Recepcao","ramal":"2341"},
+      {"local":"UBS Bom Jesus I 1","ramal":"2383"},
+      {"local":"UBS Bom Jesus I Recepcao","ramal":"2382"},
+      {"local":"UBS Bom Jesus II Recepcao","ramal":"2384"},
+      {"local":"UBS Centro 1","ramal":"2344"},
+      {"local":"UBS Centro Odontologia","ramal":"2346"},
+      {"local":"UBS Centro Policlinica","ramal":"2345"},
+      {"local":"UBS Centro Recepcao","ramal":"2343"},
+      {"local":"UBS Cidade Nova Barrinha 1","ramal":"2348"},
+      {"local":"UBS Cidade Nova Barrinha 2","ramal":"2349"},
+      {"local":"UBS Cidade Nova Barrinha 3","ramal":"2350"},
+      {"local":"UBS Cidade Nova Barrinha Recepcao","ramal":"2347"},
+      {"local":"UBS Fatima 1","ramal":"2352"},
+      {"local":"UBS Fatima 2","ramal":"2353"},
+      {"local":"UBS Fatima Recepcao","ramal":"2351"},
+      {"local":"UBS Francisco de Paula Cachoeirinha 1","ramal":"2355"},
+      {"local":"UBS Francisco de Paula Cachoeirinha Recepcao","ramal":"2354"},
+      {"local":"UBS Joao Bras 1","ramal":"2357"},
+      {"local":"UBS Joao Bras Recepcao","ramal":"2356"},
+      {"local":"UBS Laranjal Sao Jose 1","ramal":"2359"},
+      {"local":"UBS Laranjal Sao Jose Recepcao","ramal":"2358"},
+      {"local":"UBS Nova Era Inacio Martins Recepcao","ramal":"2360"},
+      {"local":"UBS Nova Vicosa 1","ramal":"2365"},
+      {"local":"UBS Nova Vicosa Recepcao","ramal":"2364"},
+      {"local":"UBS Novo Silvestre 1","ramal":"2367"},
+      {"local":"UBS Novo Silvestre Recepcao","ramal":"2366"},
+      {"local":"UBS Posses 1","ramal":"2369"},
+      {"local":"UBS Posses Recepcao","ramal":"2368"},
+      {"local":"UBS Santa Clara I 1","ramal":"2371"},
+      {"local":"UBS Santa Clara I Recepcao","ramal":"2370"},
+      {"local":"UBS Santa Clara II 1","ramal":"2373"},
+      {"local":"UBS Santa Clara II Recepcao","ramal":"2372"},
+      {"local":"UBS Santo Antonio 1","ramal":"2375"},
+      {"local":"UBS Santo Antonio Recepcao","ramal":"2374"},
+      {"local":"UBS Sao Jose Do Triunfo 1","ramal":"2377"},
+      {"local":"UBS Sao Jose Do Triunfo Recepcao","ramal":"2376"},
+      {"local":"UBS Sao Sebastiao Uniao Vale Do Sol 1","ramal":"2379"},
+      {"local":"UBS Sao Sebastiao Uniao Vale Do Sol Recepcao","ramal":"2378"},
+      {"local":"UBS Silvestre 1","ramal":"2381"},
+      {"local":"UBS Silvestre Recepcao","ramal":"2380"},
+      {"local":"Unidade de Atendimento Nutricional Psicologico e Fonoaudiologico","ramal":"2385"},
+      {"local":"Unidades de Saude Atencao Especializada","ramal":"2386"},
+      {"local":"Vigilancia Ambiental","ramal":"2321"},
+      {"local":"Vigilancia Epidemiologica","ramal":"2322"},
+      {"local":"Vigilancia Sanitaria","ramal":"2323"}
+    ];
+
+    /**
+     * Função que cria as linhas da tabela com base no array de dados.
+     * É executada uma única vez durante a inicialização da página e toda vez
+     * que uma filtragem é aplicada. Utiliza DocumentFragment para reduzir
+     * repaints e garantir performance ótima.
+     * @param {Array} lista - lista de objetos contendo local e ramal.
+     */
+    function renderTabela(lista) {
+      const tbody = document.getElementById('ramalBody');
+      // Limpa conteúdo existente
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      // Usa DocumentFragment para melhorar performance ao adicionar múltiplas linhas
+      const fragment = document.createDocumentFragment();
+      // Ordena os dados pelo nome do local (departamento) em ordem alfabética.
+      const sortedList = lista.slice().sort((a, b) => a.local.localeCompare(b.local, 'pt-BR'));
+      sortedList.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        // Alterna a cor de fundo entre #f7f7f7 e #eee para melhorar legibilidade
+        tr.style.backgroundColor = (index % 2 === 0) ? '#f7f7f7' : '#eee';
+        // Coluna Local
+        const tdLocal = document.createElement('td');
+        tdLocal.textContent = item.local;
+        tdLocal.style.padding = '8px';
+        tdLocal.style.border = '1px solid #ddd';
+        tdLocal.style.fontSize = '15px';
+        // Alinha o texto do local à esquerda conforme solicitado
+        tdLocal.style.textAlign = 'left';
+        // Coluna Ramal
+        const tdRamal = document.createElement('td');
+        tdRamal.textContent = item.ramal;
+        tdRamal.style.padding = '8px';
+        tdRamal.style.border = '1px solid #ddd';
+        tdRamal.style.fontSize = '15px';
+        // Ramal centralizado
+        tdRamal.style.textAlign = 'center';
+        tr.appendChild(tdLocal);
+        tr.appendChild(tdRamal);
+        fragment.appendChild(tr);
+      });
+      tbody.appendChild(fragment);
+    }
+
+    /**
+     * Filtra a lista de ramais conforme o texto digitado. A filtragem é
+     * case-insensitive e verifica se o termo procurado aparece no local ou
+     * no ramal. Ao alterar o valor do input, esta função é acionada.
+     * @param {string} termo - texto de busca fornecido pelo usuário.
+     */
+    function filtrarTabela(termo) {
+      const termoNormalizado = termo.trim().toLowerCase();
+      if (!termoNormalizado) {
+        renderTabela(dadosRamal);
+        return;
+      }
+      const filtrados = dadosRamal.filter(item => {
+        return (
+          item.local.toLowerCase().includes(termoNormalizado) ||
+          item.ramal.toLowerCase().includes(termoNormalizado)
+        );
+      });
+      renderTabela(filtrados);
+    }
+
+    // Inicializa a tabela com todos os dados ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTabela(dadosRamal);
+    });
+  </script>
+  <!-- Inclusão do dataset dos ramais diretamente para funcionamento offline -->
+  <script>
+    // Dataset completo extraído do arquivo Excel e convertido para JSON.
+    // Cada item possui os campos departamento, nome, numero e saida.
+    const dados = [{"departamento": "Gabinete", "nome": "Recepção GERAL", "numero": "1001", "saida": "(31) 3874-7785"}, {"departamento": "Gabinete", "nome": "Sala Governo", "numero": "1002", "saida": "(31) 2170-0404"}, {"departamento": "Gabinete", "nome": "Recepção Gabinete", "numero": "1004", "saida": "(31) 2170-0400"}, {"departamento": "Gabinete", "nome": "Gabinete do Prefeito", "numero": "1005", "saida": "(31) 2170-0400"}, {"departamento": "Gabinete", "nome": "Diretoria de Comunicação", "numero": "1006", "saida": "(31) 2170-0401"}, {"departamento": "Gabinete", "nome": "Convênios", "numero": "1007", "saida": "(31) 2170-0402"}, {"departamento": "Gabinete", "nome": "Apoio aos Conselhos", "numero": "1008", "saida": "(31) 2170-0403"}, {"departamento": "Gabinete", "nome": "Recepção Governo", "numero": "1009", "saida": "(31) 2170-0404"}, {"departamento": "Gabinete", "nome": "Projetos", "numero": "1010", "saida": "(31) 2170-0405"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Procuradoria", "nome": "Recepção", "numero": "1100", "saida": "(31) 2170-0406"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "CGM", "nome": "Sala Controladoria", "numero": "1200", "saida": "(31) 2170-0407"}, {"departamento": "CGM", "nome": "Sala Naná", "numero": "1201", "saida": "(31) 2170-0407"}, {"departamento": "CGM", "nome": "Ouvidoria Geral", "numero": "1202", "saida": "(31) 2170-0408"}, {"departamento": "CGM", "nome": "Ouvidoria SUS", "numero": "1203", "saida": "(31) 2170-0409"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Administração", "nome": "Secretaria de Administração", "numero": "1300", "saida": "(31) 2170-0410"}, {"departamento": "Administração – DCL", "nome": "Sala Licitações", "numero": "1301", "saida": "(31) 2170-0411"}, {"departamento": "Administração – DCL", "nome": "Almoxarifado Central", "numero": "1302", "saida": "(31) 2170-0412"}, {"departamento": "Administração – DCL", "nome": "Almoxarifado Saúde", "numero": "1303", "saida": "(31) 2170-0413"}, {"departamento": "Administração – DCL", "nome": "Merenda Escolar", "numero": "1304", "saida": "(31) 2170-0414"}, {"departamento": "Administração – RH", "nome": "Protocolo", "numero": "1305", "saida": "(31) 2170-0415"}, {"departamento": "Administração – RH", "nome": "RH Geral", "numero": "1306", "saida": "(31) 2170-0415"}, {"departamento": "Administração – DL", "nome": "Recepção Diretoria de Logística", "numero": "1307", "saida": "(31) 2170-0416"}, {"departamento": "Administração – DL", "nome": "Diretoria DL", "numero": "1308", "saida": "(31) 2170-0416"}, {"departamento": "Administração – DL", "nome": "Processamento de Dados", "numero": "1309", "saida": "(31) 2170-0416"}, {"departamento": "Administração – DTI", "nome": "DTI", "numero": "1310", "saida": "(31) 2170-0417"}, {"departamento": "Administração", "nome": "Bombeiros 1", "numero": "1314", "saida": "(31) 2170-0420"}, {"departamento": "Administração", "nome": "Bombeiros 2", "numero": "1315", "saida": "(31) 2170-0420"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Agropecuária", "nome": "Agropecuaria", "numero": "1400", "saida": "(31) 2170-0421"}, {"departamento": "Agropecuária", "nome": "Diretoria", "numero": "1401", "saida": "(31) 2170-0421"}, {"departamento": "Agropecuária", "nome": "Departamento de Agricultura Familiar e Produção", "numero": "1402", "saida": "(31) 2170-0421"}, {"departamento": "Agropecuária", "nome": "Inspeção Municipal", "numero": "1403", "saida": "(31) 2170-0421"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Recepção", "nome": "Ass. Social", "numero": "1500", "saida": "(31) 2170-0422"}, {"departamento": "Beneficios e Programas Sociais", "nome": "Ass. Social", "numero": "1501", "saida": "(31) 2170-0422"}, {"departamento": "Inclusão Social", "nome": "Ass. Social", "numero": "1502", "saida": "(31) 2170-0422"}, {"departamento": "Cad Único", "nome": "Ass. Social", "numero": "1503", "saida": "(31) 3874-7921"}, {"departamento": "Gestão Descentralizada", "nome": "Ass. Social", "numero": "1504", "saida": "(31) 2170-0422"}, {"departamento": "Passe Livre", "nome": "Ass. Social", "numero": "1505", "saida": "(31) 2170-0422"}, {"departamento": "Gestão Financeira", "nome": "Ass. Social", "numero": "1506", "saida": "(31) 2170-0422"}, {"departamento": "CRAS Sul", "nome": "Ass. Social", "numero": "1512", "saida": "(31) 2170-0427"}, {"departamento": "CREAS", "nome": "Ass. Social", "numero": "1514", "saida": "(31) 2170-0429"}, {"departamento": "Recepcao Conselho Tutelar", "nome": "Ass. Social", "numero": "1515", "saida": "(31) 3874-9274"}, {"departamento": "Pauliene", "nome": "Ass. Social", "numero": "1516", "saida": "(31) 3874-9274"}, {"departamento": "Gonçalves", "nome": "Ass. Social", "numero": "1517", "saida": "(31) 3874-9274"}, {"departamento": "Milena", "nome": "Ass. Social", "numero": "1518", "saida": "(31) 3874-9274"}, {"departamento": "Família Acolhedora", "nome": "Ass. Social", "numero": "1519", "saida": "(31) 2170-0430"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Recepcao Meio Ambiente", "nome": "SEMABIO", "numero": "1600", "saida": "(31) 2170-0431"}, {"departamento": "Bem Estar Animal \n", "nome": "SEMABIO", "numero": "1601", "saida": "(31) 2170-0431"}, {"departamento": "DLA", "nome": "SEMABIO", "numero": "1602", "saida": "(31) 2170-0431"}, {"departamento": "Educação Ambiental", "nome": "SEMABIO", "numero": "1603", "saida": "(31) 2170-0431"}, {"departamento": "Secretário Geral", "nome": "SEMABIO", "numero": "1604", "saida": "(31) 2170-0431"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Gabinete", "nome": "Desenvolvimento", "numero": "1700", "saida": "(31) 2170-0432"}, {"departamento": "Procon Recepcao", "nome": "Desenvolvimento", "numero": "1701", "saida": "(31) 2170-0433"}, {"departamento": "Procon 1", "nome": "Desenvolvimento", "numero": "1702", "saida": "(31) 2170-0433"}, {"departamento": "Procon 2", "nome": "Desenvolvimento", "numero": "1703", "saida": "(31) 2170-0433"}, {"departamento": "Procon 3", "nome": "Desenvolvimento", "numero": "1704", "saida": "(31) 2170-0433"}, {"departamento": "Procon 4", "nome": "Desenvolvimento", "numero": "1705", "saida": "(31) 2170-0433"}, {"departamento": "Procon 5", "nome": "Desenvolvimento", "numero": "1706", "saida": "(31) 2170-0433"}, {"departamento": "Procon 6", "nome": "Desenvolvimento", "numero": "1707", "saida": "(31) 2170-0433"}, {"departamento": "SINE Recepcao", "nome": "Desenvolvimento", "numero": "1711", "saida": "(31) 2170-0434"}, {"departamento": "SINE", "nome": "Desenvolvimento", "numero": "1712", "saida": "(31) 2170-0434"}, {"departamento": "Sala Mineira 1", "nome": "Desenvolvimento", "numero": "1713", "saida": "(31) 2170-0435"}, {"departamento": "Sala Mineira 2", "nome": "Desenvolvimento", "numero": "1714", "saida": "(31) 2170-0435"}, {"departamento": "UAI", "nome": "Desenvolvimento", "numero": "1715", "saida": "(31) 2170-0436"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "SEMPLAG Recepcao", "nome": "SEMPLAG", "numero": "1800", "saida": "(31) 2170-0438"}, {"departamento": "Sede 1", "nome": "SEMPLAG", "numero": "1801", "saida": ""}, {"departamento": "Sede 2", "nome": "SEMPLAG", "numero": "1802", "saida": "(31) 2170-0438"}, {"departamento": "Diretoria de regulação Urbana", "nome": "SEMPLAG", "numero": "1803", "saida": "(31) 2170-0438"}, {"departamento": "DIRETRAN 2", "nome": "SEMPLAG", "numero": "1804", "saida": "(31) 2170-0440"}, {"departamento": "DIRETRAN Recepcao", "nome": "SEMPLAG", "numero": "1805", "saida": "(31) 2170-0440"}, {"departamento": "DIRETRAN 1", "nome": "SEMPLAG", "numero": "1806", "saida": "(31) 2170-0440"}, {"departamento": "Fiscalização Posturas", "nome": "SEMPLAG", "numero": "1807", "saida": "(31) 2170-0441"}, {"departamento": "Rodoviária", "nome": "SEMPLAG", "numero": "1808", "saida": "(31) 2170-0442"}, {"departamento": "Aeroporto", "nome": "SEMPLAG", "numero": "1809", "saida": "(31) 2170-0443"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Recepcao Secretaria de Cultura", "nome": "Cultura", "numero": "1900", "saida": "(31) 2170-0444"}, {"departamento": "Secretaria de Cultura 1", "nome": "Cultura", "numero": "1901", "saida": "(31) 2170-0444"}, {"departamento": "Secretaria de Cultura 3", "nome": "Cultura", "numero": "1903", "saida": "(31) 2170-0444"}, {"departamento": "Departamento de Cultura", "nome": "Cultura", "numero": "1904", "saida": "(31) 2170-0444"}, {"departamento": "Secretaria de Cultura 6", "nome": "Cultura", "numero": "1906", "saida": "(31) 2170-0444"}, {"departamento": "Departamento de eventos", "nome": "Cultura", "numero": "1907", "saida": "(31) 2170-0444"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Diretoria de Finanças Recepção", "nome": "Gestão Financeira", "numero": "2000", "saida": "(31) 2170-0445"}, {"departamento": "Diretoria de Finanças", "nome": "Gestão Financeira", "numero": "2001", "saida": "(31) 2170-0445"}, {"departamento": "Contabilidade", "nome": "Gestão Financeira", "numero": "2002", "saida": "(31) 2170-0446"}, {"departamento": "Diretoria de Gestão Tributária", "nome": "Gestão Financeira", "numero": "2003", "saida": "(31) 2170-0447"}, {"departamento": "Atendimento Tributário", "nome": "Gestão Financeira", "numero": "2004", "saida": "(31) 2170-0448"}, {"departamento": "Cadastro Fiscal", "nome": "Gestão Financeira", "numero": "2005", "saida": "(31) 2170-0449"}, {"departamento": "Tesouraria", "nome": "Gestão Financeira", "numero": "2006", "saida": "(31) 2170-0450"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Secretaria de Educação", "nome": "Educação", "numero": "2100", "saida": "(31) 2170-0451"}, {"departamento": "Assessoria Gabinete", "nome": "Educação", "numero": "2102", "saida": "(31) 2170-0451"}, {"departamento": "Diretoria Administrativa", "nome": "Educação", "numero": "2103", "saida": "(31) 2170-0451"}, {"departamento": "Administração e Controle", "nome": "Educação", "numero": "2104", "saida": "(31) 2170-0451"}, {"departamento": "AEV Recepção", "nome": "Educação", "numero": "2105", "saida": "(31) 2170-0452"}, {"departamento": "AEV 1", "nome": "Educação", "numero": "2106", "saida": "(31) 2170-0452"}, {"departamento": "Recepcao Centro Educacional Dr. Januário", "nome": "Educação", "numero": "2108", "saida": "(31) 2170-0454"}, {"departamento": "Centro Educacional Dr. Januário/ Diretoria", "nome": "Educação", "numero": "2109", "saida": "(31) 2170-0454"}, {"departamento": "Centro Educacional Dr. Januário/ Sala de Recurso", "nome": "Educação", "numero": "2148", "saida": "(31) 2170-0454"}, {"departamento": "Centro Educacional Dr. Januário/Setor pedagogico 1", "nome": "Educação", "numero": "2149", "saida": "(31) 2170-0454"}, {"departamento": "Centro Educacional Dr. Januário/Setor pedagogico 2", "nome": "Educação", "numero": "2150", "saida": "(31) 2170-0454"}, {"departamento": "Recepcao EM Almiro Paraiso", "nome": "Educação", "numero": "2110", "saida": "(31) 2170-0455"}, {"departamento": "EM Almiro Paraiso", "nome": "Educação", "numero": "2111", "saida": "(31) 2170-0455"}, {"departamento": "Recepcao EM Anita Chequer", "nome": "Educação", "numero": "2112", "saida": "(31) 2770-0456"}, {"departamento": "EM Anita Chequer 1", "nome": "Educação", "numero": "2113", "saida": "(31) 2770-0456"}, {"departamento": "Recepcao EM Dr Arthur Bernardes", "nome": "Educação", "numero": "2116", "saida": "(31) 2170-0458"}, {"departamento": "EM Dr Arthur Bernardes", "nome": "Educação", "numero": "2117", "saida": "(31) 2170-0458"}, {"departamento": "Recepcao EM Joao Francisco da Silva", "nome": "Educação", "numero": "2122", "saida": "(31) 2170-0461"}, {"departamento": "Recepcao EM Pedro Gomide Filho", "nome": "Educação", "numero": "2132", "saida": "(31) 2170-0466"}, {"departamento": "EM Pedro Gomide Filho", "nome": "Educação", "numero": "2133", "saida": "(31) 2170-0466"}, {"departamento": "Recepcao CMEI Presidente Getulio Dornelles Varga", "nome": "Educação", "numero": "2136", "saida": "(31) 2170-0468"}, {"departamento": "CMEI Presidente Getulio Dornelles Varga", "nome": "Educação", "numero": "2137", "saida": "(31) 2170-0468"}, {"departamento": "Recepcao CMEI Therezinha Mucci Xavier", "nome": "Educação", "numero": "2146", "saida": "(31) 2170-0473"}, {"departamento": "CMEI Therezinha Mucci Xavier", "nome": "Educação", "numero": "2147", "saida": "(31) 2170-0473"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Recepcao Secretaria de Obras", "nome": "Obras", "numero": "2200", "saida": "(31) 2170-0474"}, {"departamento": "Almoxarifado", "nome": "Obras", "numero": "2201", "saida": "(31) 2170-0474"}, {"departamento": "Diretoria de Manutenção", "nome": "Obras", "numero": "2202", "saida": "(31) 2170-0474"}, {"departamento": "Diretoria de Habitação Popular", "nome": "Obras", "numero": "2203", "saida": "(31) 2170-0474"}, {"departamento": "Diretoria Municipal de Iluminação Pública", "nome": "Obras", "numero": "2204", "saida": "(31) 2170-0474"}, {"departamento": "Secretaria de Obras 5", "nome": "Obras", "numero": "2205", "saida": "(31) 2170-0474"}, {"departamento": "Diretoria de Gestão de Resíduos Sólidos e Paisagismo", "nome": "Obras", "numero": "2206", "saida": "(31) 2170-0474"}, {"departamento": "Recepcao Defesa Civil", "nome": "Obras", "numero": "2207", "saida": "(31) 3874-9273"}, {"departamento": "Defesa Civil 1", "nome": "", "numero": "2208", "saida": "(31) 3874-9273"}, {"departamento": "Sem Departamento", "nome": "", "numero": "", "saida": ""}, {"departamento": "Chefia Vigilancia em Saude", "nome": "Saúde", "numero": "2300", "saida": "(31) 3874-7787"}, {"departamento": "Departamento Administrativo Financeiro da Saude", "nome": "Saúde", "numero": "2301", "saida": "(31) 3874-7787"}, {"departamento": "Departamento de Contabilidade SEMSA", "nome": "Saúde", "numero": "2304", "saida": "(31) 3874-7787"}, {"departamento": "Departamento de Faturamento SEMSA", "nome": "Saúde", "numero": "2305", "saida": "(31) 3874-7787"}, {"departamento": "Departamento de Marcacao de exames", "nome": "Saúde", "numero": "2306", "saida": "(31) 3874-7786"}, {"departamento": "Departamento de Regulacao", "nome": "Saúde", "numero": "2307", "saida": "(31) 3874-7786"}, {"departamento": "Departamento de Servico Social SEMSA", "nome": "Saúde", "numero": "2309", "saida": "(31) 3874-7787"}, {"departamento": "Departamento de Tratamento Fora de Domicilio", "nome": "Saúde", "numero": "2310", "saida": "(31) 3874-7787"}, {"departamento": "Gabinete Secretario", "nome": "Saúde", "numero": "2314", "saida": "(31) 3874-7787"}, {"departamento": "Gerencia do Setor de Atencao Primaria a Saude e de Praticas", "nome": "Saúde", "numero": "2315", "saida": "(31) 3874-7787"}, {"departamento": "Secretaria Adjunto SEMSA", "nome": "Saúde", "numero": "2317", "saida": "(31) 3874-7787"}, {"departamento": "Secretaria Municipal de Saude SEMSA Recepcao", "nome": "Saúde", "numero": "2319", "saida": "(31) 3874-7787"}, {"departamento": "Vigilancia Epidemiologica", "nome": "Saúde", "numero": "2322", "saida": "(31) 3874-7787"}, {"departamento": "Vigilancia Sanitaria", "nome": "Saúde", "numero": "2323", "saida": "(31) 3874-7787"}, {"departamento": "Caps AD Centro de Atenção Psicossocial", "nome": "Saúde", "numero": "2324", "saida": "(31) 2170-0485"}, {"departamento": "Caps Infantil Centro de Atenção Psicossocial", "nome": "Saúde", "numero": "2325", "saida": "(31) 2170-0486"}, {"departamento": "CAPS Saude Mental Centro de Atencao Psicossocial", "nome": "Saúde", "numero": "2326", "saida": "(31) 2170-0487"}, {"departamento": "Centro de especialidades Odontologicas CEO", "nome": "Saúde", "numero": "2327", "saida": "(31) 2170-0488"}, {"departamento": "Centro estadual Atencao especializada CEAE Recepcao", "nome": "Saúde", "numero": "2328", "saida": "(31) 3874-7920"}, {"departamento": "CEAE Administrativo", "nome": "Saúde", "numero": "2329", "saida": "(31) 3874-7920"}, {"departamento": "Conselho Municipal de Saude", "nome": "Saúde", "numero": "2331", "saida": "(31) 2170-0489"}, {"departamento": "Recepção Hemominas", "nome": "Saúde", "numero": "2332", "saida": "(31) 2170-0490"}, {"departamento": "EMAD Saude", "nome": "Saúde", "numero": "2335", "saida": "(31) 2170-0491"}, {"departamento": "Farmacia de Todos central", "nome": "Saúde", "numero": "2336", "saida": "(31) 3874-9272"}, {"departamento": "Auto Custro Farmacia Central ", "nome": "Saúde", "numero": "2387", "saida": "(31) 3874-9272"}, {"departamento": "Nutricao Farmacia Central", "nome": "Saúde", "numero": "2388", "saida": "(31) 3874-9272"}, {"departamento": "Farmacia de Todos Sao Jose Do Triunfo", "nome": "Saúde", "numero": "2339", "saida": "(31) 2170-0494"}, {"departamento": "Setor Odontologia APS", "nome": "Saúde", "numero": "2340", "saida": "(31) 2170-0495"}, {"departamento": "UBS Amoras Recepcao", "nome": "Saúde", "numero": "2341", "saida": "(31) 2170-0496"}, {"departamento": "UBS Amoras 1", "nome": "Saúde", "numero": "2342", "saida": "(31) 2170-0496"}, {"departamento": "UBS Centro Recepcao", "nome": "Saúde", "numero": "2343", "saida": "(31) 2170-0498"}, {"departamento": "UBS Centro 1 Sala de Vacinas", "nome": "Saúde", "numero": "2344", "saida": "(31) 2170-0498"}, {"departamento": "UBS Centro Imunização", "nome": "Saúde", "numero": "2345", "saida": "(31) 2170-0498"}, {"departamento": "UBS Fátima Recepcao", "nome": "Saúde", "numero": "2351", "saida": "(31) 2170-0501"}, {"departamento": "UBS Fátima 1", "nome": "Saúde", "numero": "2352", "saida": "(31) 2170-0501"}, {"departamento": "UBS Fátima 2", "nome": "Saúde", "numero": "2353", "saida": "(31) 2170-0501"}, {"departamento": "UBS Francisco de Paula Cachoeirinha Recepcao", "nome": "Saúde", "numero": "2354", "saida": "(31) 2170-0502"}, {"departamento": "UBS Francisco de Paula Cachoeirinha", "nome": "Saúde", "numero": "2355", "saida": "(31) 2170-0502"}, {"departamento": "UBS Joao Bras Recepcao", "nome": "Saúde", "numero": "2356", "saida": "(31) 2170-0503"}, {"departamento": "UBS Joao Bras 1", "nome": "Saúde", "numero": "2357", "saida": "(31) 2170-0503"}, {"departamento": "UBS Novo Silvestre Recepcao", "nome": "Saúde", "numero": "2366", "saida": "(31) 2170-0507"}, {"departamento": "UBS Novo Silvestre 1", "nome": "Saúde", "numero": "2367", "saida": "(31) 2170-0507"}, {"departamento": "UBS Santa Clara I", "nome": "Saúde", "numero": "2370", "saida": "(31) 2170-0510"}, {"departamento": "UBS Santa Clara II", "nome": "Saúde", "numero": "2371", "saida": "(31) 2170-0510"}, {"departamento": "UBS Santa Clara II Recepção", "nome": "Saúde", "numero": "2372", "saida": "(31) 2170-0510"}, {"departamento": "UBS Sao Jose Do Triunfo Recepcao", "nome": "Saúde", "numero": "2376", "saida": "(31) 2170-0512"}, {"departamento": "UBS Sao Jose Do Triunfo 1", "nome": "Saúde", "numero": "2377", "saida": "(31) 2170-0512"}, {"departamento": "UBS Silvestre Recepcao", "nome": "Saúde", "numero": "2380", "saida": "(31) 2170-0514"}, {"departamento": "UBS Silvestre 1", "nome": "Saúde", "numero": "2381", "saida": "(31) 2170-0514"}, {"departamento": "UBS Bom Jesus I Recepcao", "nome": "Saúde", "numero": "2382", "saida": "(31) 2170-0515"}, {"departamento": "UBS Bom Jesus I 1", "nome": "Saúde", "numero": "2383", "saida": "(31) 2170-0515"}, {"departamento": "UBS Bom Jesus II Recepcao", "nome": "Saúde", "numero": "2384", "saida": "(31) 2170-0516"}];
+  </script>
+  <!-- Script para agrupar dados por departamento e filtrar -->
+  <script>
+    /**
+     * Agrupa os itens por departamento. Retorna um array de tuplas [departamento, itens].
+     * Departamentos vazios são ignorados.
+     * @param {Array} lista Lista de objetos com campos departamento, nome, numero e saida.
+     */
+    function groupByDepartment(lista) {
+      const map = new Map();
+      lista.forEach(item => {
+        const dept = (item.departamento || '').trim();
+        if (!dept) return;
+        if (!map.has(dept)) map.set(dept, []);
+        map.get(dept).push(item);
+      });
+      // Ordena departamentos alfabeticamente
+      return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
+    }
+
+    /**
+     * Renderiza as tabelas por departamento. Cada departamento recebe um título
+     * (h2) e uma tabela com as colunas "Nome do Ramal", "Número do Ramal" e "Saída".
+     * A coluna "Nome do Ramal" fica alinhada à esquerda e as linhas alternam
+     * cores de fundo para melhorar a legibilidade.
+     * @param {Array} lista Lista de objetos de ramais já filtrada.
+     */
+    function renderDepartamentos(lista) {
+      const container = document.getElementById('departamentosContainer');
+      // Limpa o conteúdo atual
+      while (container.firstChild) container.removeChild(container.firstChild);
+      const grupos = groupByDepartment(lista);
+      grupos.forEach(([departamento, items]) => {
+        // Ordena itens por nome (ramal)
+        items.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+        const h2 = document.createElement('h2');
+        h2.textContent = departamento;
+        h2.style.marginTop = '24px';
+        h2.style.fontSize = '20px';
+        h2.style.color = '#333';
+        h2.style.textAlign = 'left';
+        container.appendChild(h2);
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.background = '#fff';
+        table.style.border = '1px solid #ddd';
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        headerRow.style.background = '#ccc';
+        ['Nome do Ramal','Número do Ramal','Público'].forEach(col => {
+          const th = document.createElement('th');
+          th.textContent = col;
+          th.style.padding = '12px';
+          th.style.borderBottom = '2px solid #bbb';
+          th.style.fontSize = '18px';
+          th.style.textAlign = col === 'Nome do Ramal' ? 'left' : 'center';
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        items.forEach((item, index) => {
+          const tr = document.createElement('tr');
+          tr.style.backgroundColor = (index % 2 === 0) ? '#f7f7f7' : '#eee';
+          const tdNome = document.createElement('td');
+          tdNome.textContent = item.nome;
+          tdNome.style.padding = '8px';
+          tdNome.style.border = '1px solid #ddd';
+          tdNome.style.fontSize = '15px';
+          tdNome.style.textAlign = 'left';
+          tr.appendChild(tdNome);
+          const tdNumero = document.createElement('td');
+          tdNumero.textContent = item.numero;
+          tdNumero.style.padding = '8px';
+          tdNumero.style.border = '1px solid #ddd';
+          tdNumero.style.fontSize = '15px';
+          tdNumero.style.textAlign = 'center';
+          tr.appendChild(tdNumero);
+          const tdSaida = document.createElement('td');
+          tdSaida.textContent = item.saida;
+          tdSaida.style.padding = '8px';
+          tdSaida.style.border = '1px solid #ddd';
+          tdSaida.style.fontSize = '15px';
+          tdSaida.style.textAlign = 'center';
+          tr.appendChild(tdSaida);
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        container.appendChild(table);
+      });
+    }
+
+    /**
+     * Filtra a lista de ramais conforme o termo digitado. A filtragem verifica se o termo
+     * aparece no departamento, no nome, no número ou na saída (case-insensitive).
+     * @param {string} termo Texto de busca fornecido pelo usuário.
+     */
+    function filtrar(termo) {
+      const termoNormalizado = termo.trim().toLowerCase();
+      if (!termoNormalizado) {
+        renderDepartamentos(dados.filter(item => (item.departamento || '').trim() && (item.nome || '').trim()));
+        return;
+      }
+      const filtrados = dados.filter(item => {
+        return (
+          (item.departamento && item.departamento.toLowerCase().includes(termoNormalizado)) ||
+          (item.nome && item.nome.toLowerCase().includes(termoNormalizado)) ||
+          (item.numero && item.numero.toLowerCase().includes(termoNormalizado)) ||
+          (item.saida && item.saida.toLowerCase().includes(termoNormalizado))
+        );
+      });
+      renderDepartamentos(filtrados);
+    }
+
+    // Ao carregar a página, renderiza todos os departamentos e expõe a função de filtragem
+    window.addEventListener('DOMContentLoaded', () => {
+      const validos = dados.filter(item => (item.departamento || '').trim() && (item.nome || '').trim());
+      renderDepartamentos(validos);
+      window.filtrar = filtrar;
+    });
+  </script>
+</body>
+</html>
